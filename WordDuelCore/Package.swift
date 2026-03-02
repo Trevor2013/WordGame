@@ -16,7 +16,10 @@ let package = Package(
     targets: [
         .target(
             name: "WordDuelCore",
-            path: "Sources/WordDuelCore"
+            path: "Sources/WordDuelCore",
+            resources: [
+                .process("Resources")
+            ]
         ),
         .testTarget(
             name: "WordDuelCoreTests",

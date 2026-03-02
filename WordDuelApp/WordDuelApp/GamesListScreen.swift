@@ -308,7 +308,7 @@ private final class GamesListViewModel: ObservableObject {
             rackSize: 7,
             bingoBonus: 50,
             requireCenterFirstMove: true,
-            dictionaryStrategy: .skipValidation
+            dictionaryStrategy: .validateAllWords
         )
 
         return GameState.initial(

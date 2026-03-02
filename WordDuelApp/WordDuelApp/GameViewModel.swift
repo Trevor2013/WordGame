@@ -61,10 +61,10 @@ final class GameViewModel: ObservableObject {
             rackSize: 7,
             bingoBonus: 50,
             requireCenterFirstMove: true,
-            dictionaryStrategy: .skipValidation
+            dictionaryStrategy: .validateAllWords
         ),
         distribution: TileDistribution = .default,
-        validator: any WordValidating = AllowAllWordsValidator()
+        validator: any WordValidating = AppWordValidator.shared
     ) {
         self.rules = rules
         self.distribution = distribution
@@ -373,10 +373,8 @@ final class GameViewModel: ObservableObject {
     }
 }
 
-private struct AllowAllWordsValidator: WordValidating {
-    func isValid(_ word: String) -> Bool {
-        true
-    }
+private enum AppWordValidator {
+    static let shared: any WordValidating = ResourceDictionaryValidator()
 }
 
 struct PendingMovePreview {
