@@ -1,0 +1,112 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "PackageStructure": ["<PackageStructure>"]
+  "WordDuelCore-arm64-apple-macosx14.0-debug.module": ["<WordDuelCore-arm64-apple-macosx14.0-debug.module>"]
+  "WordDuelCorePackageTests-arm64-apple-macosx14.0-debug.module": ["<WordDuelCorePackageTests-arm64-apple-macosx14.0-debug.module>"]
+  "WordDuelCorePackageTests-arm64-apple-macosx14.0-debug.test": ["<WordDuelCorePackageTests-arm64-apple-macosx14.0-debug.test>"]
+  "WordDuelCoreTests-arm64-apple-macosx14.0-debug.module": ["<WordDuelCoreTests-arm64-apple-macosx14.0-debug.module>"]
+  "main": ["<WordDuelCore-arm64-apple-macosx14.0-debug.module>"]
+  "test": ["<WordDuelCore-arm64-apple-macosx14.0-debug.module>","<WordDuelCorePackageTests-arm64-apple-macosx14.0-debug.test>","<WordDuelCoreTests-arm64-apple-macosx14.0-debug.module>"]
+default: "main"
+nodes:
+  "/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/ross/repos/WordGame/WordDuelCore/Tests/WordDuelCoreTests/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+commands:
+  "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/BoardFactory.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/CodableCharacter.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/GameState+Initial.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/GameStateCodec.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/Models.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/MoveEngine.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/TileDistribution.swift"]
+    outputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/sources"]
+    description: "Write auxiliary file /Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/sources"
+
+  "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.derived/runner.swift"]
+    outputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/sources"]
+    description: "Write auxiliary file /Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/sources"
+
+  "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.derived/runner.swift":
+    tool: test-entry-point-tool
+    inputs: []
+    outputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.derived/runner.swift"]
+
+  "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/BoardFactory.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/CodableCharacter.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameState+Initial.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameStateCodec.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/Models.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/MoveEngine.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/TileDistribution.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/runner.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCoreTests.build/WordDuelCoreTests.swift.o"]
+    outputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.product/Objects.LinkFileList"
+
+  "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCoreTests.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/ross/repos/WordGame/WordDuelCore/Tests/WordDuelCoreTests/WordDuelCoreTests.swift"]
+    outputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCoreTests.build/sources"]
+    description: "Write auxiliary file /Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCoreTests.build/sources"
+
+  "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Library/Developer/CommandLineTools/usr/bin/swiftc"]
+    outputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+
+  "<WordDuelCore-arm64-apple-macosx14.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/BoardFactory.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/CodableCharacter.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameState+Initial.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameStateCodec.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/Models.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/MoveEngine.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/TileDistribution.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCore.swiftmodule"]
+    outputs: ["<WordDuelCore-arm64-apple-macosx14.0-debug.module>"]
+
+  "<WordDuelCorePackageTests-arm64-apple-macosx14.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/runner.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCorePackageTests.swiftmodule"]
+    outputs: ["<WordDuelCorePackageTests-arm64-apple-macosx14.0-debug.module>"]
+
+  "<WordDuelCorePackageTests-arm64-apple-macosx14.0-debug.test>":
+    tool: phony
+    inputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.xctest/Contents/MacOS/WordDuelCorePackageTests"]
+    outputs: ["<WordDuelCorePackageTests-arm64-apple-macosx14.0-debug.test>"]
+
+  "<WordDuelCoreTests-arm64-apple-macosx14.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCoreTests.build/WordDuelCoreTests.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCoreTests.swiftmodule"]
+    outputs: ["<WordDuelCoreTests-arm64-apple-macosx14.0-debug.module>"]
+
+  "C.WordDuelCore-arm64-apple-macosx14.0-debug.module":
+    tool: shell
+    inputs: ["/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/BoardFactory.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/CodableCharacter.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/GameState+Initial.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/GameStateCodec.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/Models.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/MoveEngine.swift","/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/TileDistribution.swift","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/sources"]
+    outputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/BoardFactory.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/CodableCharacter.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameState+Initial.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameStateCodec.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/Models.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/MoveEngine.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/TileDistribution.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCore.swiftmodule"]
+    description: "Compiling Swift Module 'WordDuelCore' (7 sources)"
+    args: ["/Library/Developer/CommandLineTools/usr/bin/swiftc","-module-name","WordDuelCore","-emit-dependencies","-emit-module","-emit-module-path","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCore.swiftmodule","-output-file-map","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/output-file-map.json","-parse-as-library","-incremental","-c","@/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/sources","-I","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx12.0","-enable-batch-mode","-index-store-path","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j8","-DSWIFT_PACKAGE","-DDEBUG","-module-cache-path","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-parse-as-library","-emit-objc-header","-emit-objc-header-path","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/WordDuelCore-Swift.h","-swift-version","5","-F","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-sdk","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-g","-Xcc","-isysroot","-Xcc","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-Xcc","-fPIC","-Xcc","-g","-package-name","wordduelcore"]
+
+  "C.WordDuelCorePackageTests-arm64-apple-macosx14.0-debug.module":
+    tool: shell
+    inputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.derived/runner.swift","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCoreTests.swiftmodule","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/sources"]
+    outputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/runner.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCorePackageTests.swiftmodule"]
+    description: "Compiling Swift Module 'WordDuelCorePackageTests' (1 sources)"
+    args: ["/Library/Developer/CommandLineTools/usr/bin/swiftc","-module-name","WordDuelCorePackageTests","-emit-dependencies","-emit-module","-emit-module-path","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCorePackageTests.swiftmodule","-output-file-map","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/output-file-map.json","-parse-as-library","-incremental","-c","@/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/sources","-I","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx12.0","-enable-batch-mode","-index-store-path","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j8","-DSWIFT_PACKAGE","-DDEBUG","-module-cache-path","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-parse-as-library","-emit-objc-header","-emit-objc-header-path","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/WordDuelCorePackageTests-Swift.h","-F","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-sdk","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-g","-Xcc","-isysroot","-Xcc","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-Xcc","-fPIC","-Xcc","-g","-package-name","wordduelcore"]
+
+  "C.WordDuelCorePackageTests-arm64-apple-macosx14.0-debug.test":
+    tool: shell
+    inputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/BoardFactory.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/CodableCharacter.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameState+Initial.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameStateCodec.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/Models.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/MoveEngine.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/TileDistribution.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/runner.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCoreTests.build/WordDuelCoreTests.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.product/Objects.LinkFileList"]
+    outputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.xctest/Contents/MacOS/WordDuelCorePackageTests"]
+    description: "Linking ./.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.xctest/Contents/MacOS/WordDuelCorePackageTests"
+    args: ["/Library/Developer/CommandLineTools/usr/bin/swiftc","-L","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug","-o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.xctest/Contents/MacOS/WordDuelCorePackageTests","-module-name","WordDuelCorePackageTests","-Xlinker","-no_warn_duplicate_libraries","-Xlinker","-bundle","-Xlinker","-rpath","-Xlinker","@loader_path/../../../","@/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.product/Objects.LinkFileList","-target","arm64-apple-macosx12.0","-Xlinker","-add_ast_path","-Xlinker","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCore.swiftmodule","-Xlinker","-add_ast_path","-Xlinker","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCorePackageTests.swiftmodule","-Xlinker","-add_ast_path","-Xlinker","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCoreTests.swiftmodule","-F","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-sdk","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-g","-Xlinker","-rpath","-Xlinker","/Library/Developer/CommandLineTools/Library/Developer/Frameworks"]
+
+  "C.WordDuelCoreTests-arm64-apple-macosx14.0-debug.module":
+    tool: shell
+    inputs: ["/Users/ross/repos/WordGame/WordDuelCore/Tests/WordDuelCoreTests/WordDuelCoreTests.swift","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCore.swiftmodule","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCoreTests.build/sources"]
+    outputs: ["/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCoreTests.build/WordDuelCoreTests.swift.o","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCoreTests.swiftmodule"]
+    description: "Compiling Swift Module 'WordDuelCoreTests' (1 sources)"
+    args: ["/Library/Developer/CommandLineTools/usr/bin/swiftc","-module-name","WordDuelCoreTests","-emit-dependencies","-emit-module","-emit-module-path","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules/WordDuelCoreTests.swiftmodule","-output-file-map","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCoreTests.build/output-file-map.json","-parse-as-library","-incremental","-c","@/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCoreTests.build/sources","-I","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx12.0","-enable-batch-mode","-index-store-path","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j8","-DSWIFT_PACKAGE","-DDEBUG","-module-cache-path","/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-parse-as-library","-swift-version","5","-F","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-sdk","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-g","-Xcc","-isysroot","-Xcc","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-Xcc","-fPIC","-Xcc","-g","-package-name","wordduelcore"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/","/Users/ross/repos/WordGame/WordDuelCore/Tests/WordDuelCoreTests/","/Users/ross/repos/WordGame/WordDuelCore/Package.swift","/Users/ross/repos/WordGame/WordDuelCore/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+

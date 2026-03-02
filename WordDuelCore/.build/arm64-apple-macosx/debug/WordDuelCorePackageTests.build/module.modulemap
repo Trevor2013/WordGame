@@ -1,0 +1,4 @@
+module WordDuelCorePackageTests {
+    header "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCorePackageTests.build/WordDuelCorePackageTests-Swift.h"
+    requires objc
+}

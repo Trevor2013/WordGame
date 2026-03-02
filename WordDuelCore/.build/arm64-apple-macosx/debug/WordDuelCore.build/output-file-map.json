@@ -1,0 +1,47 @@
+{
+  "": {
+    "swift-dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/master.swiftdeps"
+  },
+  "/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/BoardFactory.swift": {
+    "dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/BoardFactory.d",
+    "object": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/BoardFactory.swift.o",
+    "swiftmodule": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/BoardFactory~partial.swiftmodule",
+    "swift-dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/BoardFactory.swiftdeps"
+  },
+  "/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/CodableCharacter.swift": {
+    "dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/CodableCharacter.d",
+    "object": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/CodableCharacter.swift.o",
+    "swiftmodule": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/CodableCharacter~partial.swiftmodule",
+    "swift-dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/CodableCharacter.swiftdeps"
+  },
+  "/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/GameState+Initial.swift": {
+    "dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameState+Initial.d",
+    "object": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameState+Initial.swift.o",
+    "swiftmodule": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameState+Initial~partial.swiftmodule",
+    "swift-dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameState+Initial.swiftdeps"
+  },
+  "/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/GameStateCodec.swift": {
+    "dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameStateCodec.d",
+    "object": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameStateCodec.swift.o",
+    "swiftmodule": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameStateCodec~partial.swiftmodule",
+    "swift-dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/GameStateCodec.swiftdeps"
+  },
+  "/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/Models.swift": {
+    "dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/Models.d",
+    "object": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/Models.swift.o",
+    "swiftmodule": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/Models~partial.swiftmodule",
+    "swift-dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/Models.swiftdeps"
+  },
+  "/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/MoveEngine.swift": {
+    "dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/MoveEngine.d",
+    "object": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/MoveEngine.swift.o",
+    "swiftmodule": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/MoveEngine~partial.swiftmodule",
+    "swift-dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/MoveEngine.swiftdeps"
+  },
+  "/Users/ross/repos/WordGame/WordDuelCore/Sources/WordDuelCore/TileDistribution.swift": {
+    "dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/TileDistribution.d",
+    "object": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/TileDistribution.swift.o",
+    "swiftmodule": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/TileDistribution~partial.swiftmodule",
+    "swift-dependencies": "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/TileDistribution.swiftdeps"
+  }
+}

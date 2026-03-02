@@ -629,7 +629,174 @@ final class WordDuelCoreScoringTests: XCTestCase {
     }
 }
 
+final class WordDuelCoreRegressionTests: XCTestCase {
+    func testGameStateCodecRoundTripFromInlineFixture() throws {
+        let original = try TestHelpers.loadGameStateFixture(json: complexBoardFixtureJSON)
+
+        let encoded = try GameStateCodec.encode(original)
+        let decoded = try GameStateCodec.decode(encoded)
+        let reencoded = try GameStateCodec.encode(decoded)
+
+        TestHelpers.assertGameStateEqual(decoded, original)
+        XCTAssertEqual(reencoded, encoded)
+    }
+
+    func testComplexFixtureMoveRegression() throws {
+        let rules = RulesConfig(
+            boardSize: 5,
+            rackSize: 3,
+            requireCenterFirstMove: false,
+            dictionaryStrategy: .validateAllWords
+        )
+        let state = try TestHelpers.loadGameStateFixture(json: complexBoardFixtureJSON)
+
+        let playerARack = try XCTUnwrap(state.racks[.playerA])
+        let tileO = try XCTUnwrap(playerARack.first(where: { $0.tileId == "rack-o" }))
+        let tileN = try XCTUnwrap(playerARack.first(where: { $0.tileId == "rack-n" }))
+
+        let result = applyMove(
+            state: state,
+            move: .place([
+                Placement(position: Position(row: 2, col: 1), tile: tileO),
+                Placement(position: Position(row: 2, col: 2), tile: tileN)
+            ]),
+            validator: TestDictionary(validWords: ["ONT", "AOT", "ENR"]),
+            rules: rules
+        )
+
+        switch result {
+        case .success((let nextState, let breakdown)):
+            XCTAssertEqual(breakdown?.mainWord, "ONT")
+            XCTAssertEqual(breakdown?.mainWordScore, 8)
+            XCTAssertEqual(breakdown?.crossWords.map(\.0), ["AOT", "ENR"])
+            XCTAssertEqual(breakdown?.crossWords.map(\.1), [4, 6])
+            XCTAssertEqual(breakdown?.total, 18)
+
+            XCTAssertEqual(nextState.scores[.playerA], 38)
+            XCTAssertEqual(nextState.scores[.playerB], 7)
+            XCTAssertEqual(nextState.turn, .playerB)
+            XCTAssertEqual(nextState.version, 13)
+
+            XCTAssertEqual(nextState.racks[.playerA]?.map(\.tileId), ["rack-z", "bag-x", "bag-y"])
+            XCTAssertEqual(nextState.bag, [])
+
+            XCTAssertEqual(nextState.board[2][1].letter, Character("O"))
+            XCTAssertEqual(nextState.board[2][1].tile?.tileId, "rack-o")
+            XCTAssertEqual(nextState.board[2][1].bonus, .doubleLetter)
+            XCTAssertEqual(nextState.board[2][1].bonusConsumed, true)
+
+            XCTAssertEqual(nextState.board[2][2].letter, Character("N"))
+            XCTAssertEqual(nextState.board[2][2].tile?.tileId, "rack-n")
+            XCTAssertEqual(nextState.board[2][2].bonus, .doubleWord)
+            XCTAssertEqual(nextState.board[2][2].bonusConsumed, true)
+
+            XCTAssertEqual(nextState.board[2][3].letter, Character("T"))
+            XCTAssertEqual(nextState.board[2][3].tile?.tileId, "existing-2-3-T")
+        case .failure(let error):
+            XCTFail("Expected success, got \(error)")
+        }
+    }
+
+    private let complexBoardFixtureJSON = """
+    {
+      "board": [
+        [
+          { "bonusConsumed": false },
+          { "bonusConsumed": false },
+          { "bonusConsumed": false },
+          { "bonusConsumed": false },
+          { "bonusConsumed": false }
+        ],
+        [
+          { "bonusConsumed": false },
+          {
+            "letter": "A",
+            "tile": { "tileId": "existing-1-1-A", "letter": "A", "points": 1, "isBlank": false },
+            "bonusConsumed": false
+          },
+          {
+            "letter": "E",
+            "tile": { "tileId": "existing-1-2-E", "letter": "E", "points": 1, "isBlank": false },
+            "bonusConsumed": false
+          },
+          { "bonusConsumed": false },
+          { "bonus": "tripleWord", "bonusConsumed": true }
+        ],
+        [
+          { "bonusConsumed": false },
+          { "bonus": "doubleLetter", "bonusConsumed": false },
+          { "bonus": "doubleWord", "bonusConsumed": false },
+          {
+            "letter": "T",
+            "tile": { "tileId": "existing-2-3-T", "letter": "T", "points": 1, "isBlank": false },
+            "bonusConsumed": false
+          },
+          { "bonusConsumed": false }
+        ],
+        [
+          { "bonusConsumed": false },
+          {
+            "letter": "T",
+            "tile": { "tileId": "existing-3-1-T", "letter": "T", "points": 1, "isBlank": false },
+            "bonusConsumed": false
+          },
+          {
+            "letter": "R",
+            "tile": { "tileId": "existing-3-2-R", "letter": "R", "points": 1, "isBlank": false },
+            "bonusConsumed": false
+          },
+          { "bonusConsumed": false },
+          { "bonusConsumed": false }
+        ],
+        [
+          { "bonusConsumed": false },
+          { "bonusConsumed": false },
+          { "bonusConsumed": false },
+          { "bonusConsumed": false },
+          { "bonusConsumed": false }
+        ]
+      ],
+      "rackPlayerA": [
+        { "tileId": "rack-o", "letter": "O", "points": 1, "isBlank": false },
+        { "tileId": "rack-n", "letter": "N", "points": 1, "isBlank": false },
+        { "tileId": "rack-z", "letter": "Z", "points": 10, "isBlank": false }
+      ],
+      "rackPlayerB": [
+        { "tileId": "rack-b", "letter": "B", "points": 3, "isBlank": false },
+        { "tileId": "rack-c", "letter": "C", "points": 3, "isBlank": false },
+        { "tileId": "rack-d", "letter": "D", "points": 2, "isBlank": false }
+      ],
+      "bag": [
+        { "tileId": "bag-x", "letter": "X", "points": 8, "isBlank": false },
+        { "tileId": "bag-y", "letter": "Y", "points": 4, "isBlank": false }
+      ],
+      "scorePlayerA": 20,
+      "scorePlayerB": 7,
+      "turn": "playerA",
+      "version": 12
+    }
+    """
+}
+
 private enum TestHelpers {
+    static func loadGameStateFixture(json: String) throws -> GameState {
+        try GameStateCodec.decode(Data(json.utf8))
+    }
+
+    static func assertGameStateEqual(
+        _ actual: GameState,
+        _ expected: GameState,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertEqual(actual.board, expected.board, file: file, line: line)
+        XCTAssertEqual(actual.racks, expected.racks, file: file, line: line)
+        XCTAssertEqual(actual.bag, expected.bag, file: file, line: line)
+        XCTAssertEqual(actual.scores, expected.scores, file: file, line: line)
+        XCTAssertEqual(actual.turn, expected.turn, file: file, line: line)
+        XCTAssertEqual(actual.version, expected.version, file: file, line: line)
+    }
+
     static func makeEmptyState(
         seed: Int,
         rules: RulesConfig,
