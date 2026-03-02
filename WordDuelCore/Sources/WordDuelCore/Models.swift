@@ -13,12 +13,20 @@ public enum PlayerID: String, CaseIterable, Codable, Hashable, Sendable {
 }
 
 public struct Tile: Codable, Hashable, Sendable {
+    public let tileId: String
     public let letter: Character
     public let points: Int
     public let isBlank: Bool
     public let blankAssignedLetter: Character?
 
-    public init(letter: Character, points: Int, isBlank: Bool = false, blankAssignedLetter: Character? = nil) {
+    public init(
+        tileId: String,
+        letter: Character,
+        points: Int,
+        isBlank: Bool = false,
+        blankAssignedLetter: Character? = nil
+    ) {
+        self.tileId = tileId
         self.letter = letter
         self.points = points
         self.isBlank = isBlank
@@ -195,25 +203,6 @@ public struct ScoreBreakdown: Sendable {
 public enum WordDirection: String, Codable, Hashable, Sendable {
     case horizontal
     case vertical
-}
-
-public struct WordsFormed: Sendable {
-    public let mainWord: String
-    public let mainWordPositions: [Position]
-    public let direction: WordDirection
-    public let crossWords: [(word: String, positions: [Position])]
-
-    public init(
-        mainWord: String,
-        mainWordPositions: [Position],
-        direction: WordDirection,
-        crossWords: [(word: String, positions: [Position])]
-    ) {
-        self.mainWord = mainWord
-        self.mainWordPositions = mainWordPositions
-        self.direction = direction
-        self.crossWords = crossWords
-    }
 }
 
 public protocol WordValidating {

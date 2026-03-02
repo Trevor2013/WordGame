@@ -4,7 +4,7 @@ public func applyMove(
     state: GameState,
     move: Move,
     validator: WordValidating
-) -> Result<(GameState, WordsFormed?), RuleViolation> {
+) -> Result<(GameState, ScoreBreakdown?), RuleViolation> {
     applyMove(state: state, move: move, validator: validator, rules: RulesConfig())
 }
 
@@ -13,7 +13,7 @@ public func applyMove(
     move: Move,
     validator: WordValidating,
     rules: RulesConfig = RulesConfig()
-) -> Result<(GameState, WordsFormed?), RuleViolation> {
+) -> Result<(GameState, ScoreBreakdown?), RuleViolation> {
     guard state.board.count == rules.boardSize,
           state.board.allSatisfy({ $0.count == rules.boardSize }) else {
         let rows = state.board.count
@@ -158,7 +158,33 @@ func extractCrossWords(
     return output
 }
 
-private func applyExchange(state: GameState, tiles: [Tile]) -> Result<(GameState, WordsFormed?), RuleViolation> {
+public func scoreMove(
+    state: GameState,
+    placements: [Placement],
+    mainWord: (word: String, positions: [Position], direction: WordDirection),
+    crossWords: [(word: String, positions: [Position])]
+) -> ScoreBreakdown {
+    let placementMap = Dictionary(uniqueKeysWithValues: placements.map { ($0.position, $0.tile) })
+
+    let mainWordScore = scoreWord(state: state, positions: mainWord.positions, placementMap: placementMap)
+    var scoredCrossWords: [(String, Int)] = []
+    for crossWord in crossWords {
+        let score = scoreWord(state: state, positions: crossWord.positions, placementMap: placementMap)
+        scoredCrossWords.append((crossWord.word, score))
+    }
+
+    let total = mainWordScore + scoredCrossWords.map(\.1).reduce(0, +)
+
+    return ScoreBreakdown(
+        mainWord: mainWord.word,
+        mainWordScore: mainWordScore,
+        crossWords: scoredCrossWords,
+        total: total,
+        notes: []
+    )
+}
+
+private func applyExchange(state: GameState, tiles: [Tile]) -> Result<(GameState, ScoreBreakdown?), RuleViolation> {
     guard !tiles.isEmpty else {
         return .failure(.emptyExchange)
     }
@@ -169,7 +195,7 @@ private func applyExchange(state: GameState, tiles: [Tile]) -> Result<(GameState
 
     var rack = state.racks[state.turn] ?? []
     for tile in tiles {
-        guard let index = rack.firstIndex(of: tile) else {
+        guard let index = rack.firstIndex(where: { $0.tileId == tile.tileId }) else {
             return .failure(.tileNotInRack(tile))
         }
         rack.remove(at: index)
@@ -199,9 +225,7 @@ private func applyPlacement(
     placements: [Placement],
     validator: WordValidating,
     rules: RulesConfig
-) -> Result<(GameState, WordsFormed?), RuleViolation> {
-    _ = validator
-
+) -> Result<(GameState, ScoreBreakdown?), RuleViolation> {
     guard !placements.isEmpty else {
         return .failure(.emptyPlacementMove)
     }
@@ -216,9 +240,10 @@ private func applyPlacement(
         }
     }
 
-    var rack = state.racks[state.turn] ?? []
+    let startingRack = state.racks[state.turn] ?? []
+    var rack = startingRack
     for placement in placements {
-        guard let index = rack.firstIndex(of: placement.tile) else {
+        guard let index = rack.firstIndex(where: { $0.tileId == placement.tile.tileId }) else {
             return .failure(.tileNotInRack(placement.tile))
         }
         rack.remove(at: index)
@@ -244,6 +269,36 @@ private func applyPlacement(
     let mainWord = extractMainWord(state, placements)
     let crossWords = extractCrossWords(state, placements, mainWord.direction)
 
+    if rules.dictionaryStrategy != .skipValidation {
+        if !validator.isValid(mainWord.word) {
+            return .failure(.invalidWord(mainWord.word))
+        }
+
+        if rules.dictionaryStrategy == .validateAllWords {
+            for crossWord in crossWords where !validator.isValid(crossWord.word) {
+                return .failure(.invalidWord(crossWord.word))
+            }
+        }
+    }
+
+    var breakdown = scoreMove(
+        state: state,
+        placements: placements,
+        mainWord: mainWord,
+        crossWords: crossWords
+    )
+
+    let isBingo = placements.count == rules.rackSize && startingRack.count == rules.rackSize
+    if isBingo {
+        breakdown = ScoreBreakdown(
+            mainWord: breakdown.mainWord,
+            mainWordScore: breakdown.mainWordScore,
+            crossWords: breakdown.crossWords,
+            total: breakdown.total + rules.bingoBonus,
+            notes: ["Bingo +\(rules.bingoBonus)"]
+        )
+    }
+
     var nextBoard = state.board
     for placement in placements {
         let current = nextBoard[placement.position.row][placement.position.col]
@@ -251,7 +306,7 @@ private func applyPlacement(
             letter: placement.tile.resolvedLetter,
             tile: placement.tile,
             bonus: current.bonus,
-            bonusConsumed: current.bonus != nil
+            bonusConsumed: current.bonusConsumed || current.bonus != nil
         )
     }
 
@@ -263,23 +318,19 @@ private func applyPlacement(
     var nextRacks = state.racks
     nextRacks[state.turn] = rack
 
+    var nextScores = state.scores
+    nextScores[state.turn] = (state.scores[state.turn] ?? 0) + breakdown.total
+
     let next = GameState(
         board: nextBoard,
         racks: nextRacks,
         bag: nextBag,
-        scores: state.scores,
+        scores: nextScores,
         turn: state.turn.opponent,
         version: state.version + 1
     )
 
-    let words = WordsFormed(
-        mainWord: mainWord.word,
-        mainWordPositions: mainWord.positions,
-        direction: mainWord.direction,
-        crossWords: crossWords
-    )
-
-    return .success((next, words))
+    return .success((next, breakdown))
 }
 
 private func inferMainDirection(_ state: GameState, _ placements: [Placement]) -> WordDirection {
@@ -345,6 +396,29 @@ private func collectWord(
     }
 
     return (word: String(letters), positions: positions)
+}
+
+private func scoreWord(state: GameState, positions: [Position], placementMap: [Position: Tile]) -> Int {
+    var subtotal = 0
+    var wordMultiplier = 1
+
+    for position in positions {
+        if let placedTile = placementMap[position] {
+            let basePoints = placedTile.isBlank ? 0 : placedTile.points
+            let cell = state.board[position.row][position.col]
+
+            if !cell.bonusConsumed, let bonus = cell.bonus {
+                subtotal += basePoints * bonus.letterMultiplier
+                wordMultiplier *= bonus.wordMultiplier
+            } else {
+                subtotal += basePoints
+            }
+        } else if let existingTile = state.board[position.row][position.col].tile {
+            subtotal += existingTile.isBlank ? 0 : existingTile.points
+        }
+    }
+
+    return subtotal * wordMultiplier
 }
 
 private func isBoardEmpty(_ state: GameState) -> Bool {

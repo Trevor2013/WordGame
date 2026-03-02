@@ -1,172 +1,738 @@
 import XCTest
 @testable import WordDuelCore
 
-final class WordDuelCoreTests: XCTestCase {
-    func testPlaceRequiresAtLeastOneTile() {
-        let state = makeState()
-        let result = applyMove(state: state, move: .place([]), validator: AllowAllValidator())
+final class WordDuelCoreLegalityTests: XCTestCase {
+    func testFirstMoveMustCoverCenter() {
+        let rules = RulesConfig(requireCenterFirstMove: true)
+        var state = TestHelpers.makeEmptyState(seed: 1, rules: rules)
+        let rack = TestHelpers.makeRack(letters: "A")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
 
-        switch result {
-        case .success:
-            XCTFail("Expected empty placement violation")
-        case .failure(let error):
-            XCTAssertEqual(error, .emptyPlacementMove)
-        }
-    }
-
-    func testFirstMoveMustCoverCenterOnEmptyBoard() {
-        let state = withRack(makeState(), for: .playerA, rack: [Tile(letter: "A", points: 1)])
-
-        let result = applyMove(
-            state: state,
-            move: .place([Placement(position: Position(row: 0, col: 0), tile: Tile(letter: "A", points: 1))]),
-            validator: AllowAllValidator()
+        let (result, _) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 0, col: 0), tile: rack[0])],
+            validWords: ["A"],
+            rules: rules
         )
 
-        switch result {
-        case .success:
-            XCTFail("Expected first-move center violation")
-        case .failure(let error):
-            XCTAssertEqual(error, .firstMoveMustCoverCenter(Position(row: 7, col: 7)))
-        }
+        XCTAssertEqual(TestHelpers.unwrapFailure(result), .firstMoveMustCoverCenter(Position(row: 7, col: 7)))
     }
 
-    func testContiguousAllowsBridgingAcrossExistingTile() throws {
-        var state = makeState()
-        state = withPlacedTile(state, at: Position(row: 7, col: 8), tile: Tile(letter: "A", points: 1))
-        state = withRack(state, for: .playerA, rack: [Tile(letter: "C", points: 3), Tile(letter: "T", points: 1)])
+    func testFirstMoveCenterAllowed() {
+        let rules = RulesConfig(requireCenterFirstMove: true)
+        var state = TestHelpers.makeEmptyState(seed: 2, rules: rules)
+        let rack = TestHelpers.makeRack(letters: "A")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
 
-        let result = applyMove(
-            state: state,
-            move: .place([
-                Placement(position: Position(row: 7, col: 7), tile: Tile(letter: "C", points: 3)),
-                Placement(position: Position(row: 7, col: 9), tile: Tile(letter: "T", points: 1))
-            ]),
-            validator: AllowAllValidator()
+        let (result, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 7), tile: rack[0])],
+            validWords: ["A"],
+            rules: rules
         )
 
-        let (_, words) = try unwrapSuccess(result)
-        XCTAssertEqual(words?.mainWord, "CAT")
-        XCTAssertEqual(words?.direction, .horizontal)
-        XCTAssertEqual(words?.mainWordPositions, [
-            Position(row: 7, col: 7),
-            Position(row: 7, col: 8),
-            Position(row: 7, col: 9)
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWord, "A")
+        XCTAssertEqual(breakdown?.total, 1)
+    }
+
+    func testPlacementMustBeSingleLine() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 3, rules: rules)
+        let rack = TestHelpers.makeRack(letters: "A", "B")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let placements = [
+            Placement(position: Position(row: 7, col: 7), tile: rack[0]),
+            Placement(position: Position(row: 8, col: 8), tile: rack[1])
+        ]
+
+        let (result, _) = TestHelpers.placeWord(state, placements: placements, validWords: ["AB"], rules: rules)
+        XCTAssertEqual(TestHelpers.unwrapFailure(result), .nonLinearPlacement)
+    }
+
+    func testContiguousRejectsGapAcrossEmptyCells() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 4, rules: rules)
+        let rack = TestHelpers.makeRack(letters: "C", "T")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let placements = [
+            Placement(position: Position(row: 7, col: 7), tile: rack[0]),
+            Placement(position: Position(row: 7, col: 9), tile: rack[1])
+        ]
+
+        let (result, _) = TestHelpers.placeWord(state, placements: placements, validWords: ["CT"], rules: rules)
+        XCTAssertEqual(TestHelpers.unwrapFailure(result), .nonContiguousPlacement)
+    }
+
+    func testContiguousAllowsBridgingAcrossExistingTiles() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 5, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [(7, 8, "A", 1)])
+        let rack = TestHelpers.makeRack(letters: "C", "T")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let placements = [
+            Placement(position: Position(row: 7, col: 7), tile: rack[0]),
+            Placement(position: Position(row: 7, col: 9), tile: rack[1])
+        ]
+
+        let (result, breakdown) = TestHelpers.placeWord(state, placements: placements, validWords: ["CAT"], rules: rules)
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWord, "CAT")
+        XCTAssertEqual(breakdown?.mainWordScore, 5)
+        XCTAssertEqual(breakdown?.total, 5)
+    }
+
+    func testNonEmptyBoardMustTouchExistingTiles() {
+        let rules = RulesConfig(requireCenterFirstMove: true)
+        var state = TestHelpers.makeEmptyState(seed: 6, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [(7, 7, "A", 1)])
+        let rack = TestHelpers.makeRack(letters: "B")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (result, _) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 0, col: 0), tile: rack[0])],
+            validWords: ["B"],
+            rules: rules
+        )
+
+        XCTAssertEqual(TestHelpers.unwrapFailure(result), .moveMustConnectToExistingTiles)
+    }
+
+    func testRejectsOutOfBoundsNegative() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 7, rules: rules)
+        let rack = TestHelpers.makeRack(letters: "A")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (result, _) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: -1, col: 0), tile: rack[0])],
+            validWords: ["A"],
+            rules: rules
+        )
+
+        XCTAssertEqual(TestHelpers.unwrapFailure(result), .invalidPosition(Position(row: -1, col: 0)))
+    }
+
+    func testRejectsOutOfBoundsTooLarge() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 8, rules: rules)
+        let rack = TestHelpers.makeRack(letters: "A")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (result, _) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 15, col: 0), tile: rack[0])],
+            validWords: ["A"],
+            rules: rules
+        )
+
+        XCTAssertEqual(TestHelpers.unwrapFailure(result), .invalidPosition(Position(row: 15, col: 0)))
+    }
+
+    func testRejectsOccupiedCells() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 9, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [(7, 7, "A", 1)])
+        let rack = TestHelpers.makeRack(letters: "B")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (result, _) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 7), tile: rack[0])],
+            validWords: ["B"],
+            rules: rules
+        )
+
+        XCTAssertEqual(TestHelpers.unwrapFailure(result), .occupiedCell(Position(row: 7, col: 7)))
+    }
+
+    func testRejectsDuplicatePlacements() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 10, rules: rules)
+        let rack = TestHelpers.makeRack(letters: "A", "B")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let duplicate = Position(row: 7, col: 7)
+        let placements = [
+            Placement(position: duplicate, tile: rack[0]),
+            Placement(position: duplicate, tile: rack[1])
+        ]
+
+        let (result, _) = TestHelpers.placeWord(state, placements: placements, validWords: ["AB"], rules: rules)
+        XCTAssertEqual(TestHelpers.unwrapFailure(result), .duplicatePlacement(duplicate))
+    }
+}
+
+final class WordDuelCoreExtractionTests: XCTestCase {
+    func testMainWordHorizontalIncludesExistingTiles() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 11, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [(7, 6, "C", 3), (7, 8, "T", 1)])
+        let rack = TestHelpers.makeRack(letters: "A")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (result, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 7), tile: rack[0])],
+            validWords: ["CAT"],
+            rules: rules
+        )
+
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWord, "CAT")
+        XCTAssertEqual(breakdown?.mainWordScore, 5)
+        XCTAssertEqual(breakdown?.crossWords.count, 0)
+        XCTAssertEqual(breakdown?.total, 5)
+    }
+
+    func testMainWordVerticalIncludesExistingTiles() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 12, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [(6, 7, "C", 3), (8, 7, "T", 1)])
+        let rack = TestHelpers.makeRack(letters: "A")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (result, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 7), tile: rack[0])],
+            validWords: ["CAT"],
+            rules: rules
+        )
+
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWord, "CAT")
+        XCTAssertEqual(breakdown?.mainWordScore, 5)
+        XCTAssertEqual(breakdown?.crossWords.count, 0)
+        XCTAssertEqual(breakdown?.total, 5)
+    }
+
+    func testSingleTileHookHorizontal() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 13, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [(7, 6, "C", 3), (7, 7, "A", 1)])
+        let rack = TestHelpers.makeRack(letters: "T")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (result, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 8), tile: rack[0])],
+            validWords: ["CAT"],
+            rules: rules
+        )
+
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWord, "CAT")
+        XCTAssertEqual(breakdown?.mainWordScore, 5)
+        XCTAssertEqual(breakdown?.total, 5)
+    }
+
+    func testSingleTileHookVertical() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 14, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [(6, 7, "C", 3), (7, 7, "A", 1)])
+        let rack = TestHelpers.makeRack(letters: "T")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (result, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 8, col: 7), tile: rack[0])],
+            validWords: ["CAT"],
+            rules: rules
+        )
+
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWord, "CAT")
+        XCTAssertEqual(breakdown?.mainWordScore, 5)
+        XCTAssertEqual(breakdown?.total, 5)
+    }
+
+    func testParallelPlayCreatesMultipleCrossWords() {
+        let rules = RulesConfig(requireCenterFirstMove: false, dictionaryStrategy: .validateAllWords)
+        var state = TestHelpers.makeEmptyState(seed: 15, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [
+            (6, 7, "A", 1), (8, 7, "T", 1),
+            (6, 8, "E", 1), (8, 8, "R", 1)
         ])
-    }
+        let rack = TestHelpers.makeRack(letters: "O", "N")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
 
-    func testContiguousRejectsGapAcrossEmptyCell() {
-        var state = makeState()
-        state = withPlacedTile(state, at: Position(row: 7, col: 8), tile: Tile(letter: "A", points: 1))
-        state = withRack(state, for: .playerA, rack: [Tile(letter: "C", points: 3), Tile(letter: "T", points: 1)])
+        let placements = [
+            Placement(position: Position(row: 7, col: 7), tile: rack[0]),
+            Placement(position: Position(row: 7, col: 8), tile: rack[1])
+        ]
 
-        let result = applyMove(
-            state: state,
-            move: .place([
-                Placement(position: Position(row: 7, col: 7), tile: Tile(letter: "C", points: 3)),
-                Placement(position: Position(row: 7, col: 10), tile: Tile(letter: "T", points: 1))
-            ]),
-            validator: AllowAllValidator()
+        let (result, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: placements,
+            validWords: ["ON", "AOT", "ENR"],
+            rules: rules
         )
 
-        switch result {
-        case .success:
-            XCTFail("Expected non-contiguous violation")
-        case .failure(let error):
-            XCTAssertEqual(error, .nonContiguousPlacement)
-        }
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWord, "ON")
+        XCTAssertEqual(breakdown?.crossWords.count, 2)
+        XCTAssertEqual(breakdown?.crossWords[0].0, "AOT")
+        XCTAssertEqual(breakdown?.crossWords[1].0, "ENR")
+        XCTAssertEqual(breakdown?.mainWordScore, 2)
+        XCTAssertEqual(breakdown?.total, 8)
     }
 
-    func testNonEmptyBoardRequiresTouchingExistingTiles() {
-        var state = makeState()
-        state = withPlacedTile(state, at: Position(row: 7, col: 7), tile: Tile(letter: "A", points: 1))
-        state = withRack(state, for: .playerA, rack: [Tile(letter: "B", points: 3)])
+    func testCrossWordsLengthOneIgnored() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 16, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [(6, 7, "A", 1), (8, 7, "T", 1), (6, 8, "E", 1)])
+        let rack = TestHelpers.makeRack(letters: "R", "S")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
 
-        let result = applyMove(
-            state: state,
-            move: .place([Placement(position: Position(row: 0, col: 0), tile: Tile(letter: "B", points: 3))]),
-            validator: AllowAllValidator()
+        let placements = [
+            Placement(position: Position(row: 7, col: 7), tile: rack[0]),
+            Placement(position: Position(row: 7, col: 8), tile: rack[1])
+        ]
+
+        let (result, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: placements,
+            validWords: ["RS", "ART"],
+            rules: rules
         )
 
-        switch result {
-        case .success:
-            XCTFail("Expected touching violation")
-        case .failure(let error):
-            XCTAssertEqual(error, .moveMustConnectToExistingTiles)
-        }
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWord, "RS")
+        XCTAssertEqual(breakdown?.crossWords.count, 1)
+        XCTAssertEqual(breakdown?.crossWords.first?.0, "ART")
+        XCTAssertEqual(breakdown?.mainWordScore, 2)
+        XCTAssertEqual(breakdown?.total, 5)
     }
 
-    func testExtractsCrossWordsAndIgnoresLengthOne() throws {
-        var state = makeState()
+    func testBridgingWordExtraction() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 17, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [(7, 8, "A", 1)])
+        let rack = TestHelpers.makeRack(letters: "C", "T")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
 
-        state = withPlacedTile(state, at: Position(row: 6, col: 7), tile: Tile(letter: "A", points: 1))
-        state = withPlacedTile(state, at: Position(row: 8, col: 7), tile: Tile(letter: "T", points: 1))
-        state = withPlacedTile(state, at: Position(row: 6, col: 8), tile: Tile(letter: "E", points: 1))
-
-        state = withRack(state, for: .playerA, rack: [Tile(letter: "R", points: 1), Tile(letter: "S", points: 1)])
-
-        let result = applyMove(
-            state: state,
-            move: .place([
-                Placement(position: Position(row: 7, col: 7), tile: Tile(letter: "R", points: 1)),
-                Placement(position: Position(row: 7, col: 8), tile: Tile(letter: "S", points: 1))
-            ]),
-            validator: AllowAllValidator()
+        let (result, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [
+                Placement(position: Position(row: 7, col: 7), tile: rack[0]),
+                Placement(position: Position(row: 7, col: 9), tile: rack[1])
+            ],
+            validWords: ["CAT"],
+            rules: rules
         )
 
-        let (_, words) = try unwrapSuccess(result)
-        XCTAssertEqual(words?.mainWord, "RS")
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWord, "CAT")
+        XCTAssertEqual(breakdown?.mainWordScore, 5)
+        XCTAssertEqual(breakdown?.total, 5)
+    }
 
-        let cross = words?.crossWords ?? []
-        XCTAssertEqual(cross.count, 1)
-        XCTAssertEqual(cross.first?.word, "ARS")
-        XCTAssertEqual(cross.first?.positions, [
-            Position(row: 6, col: 7),
-            Position(row: 7, col: 7),
-            Position(row: 8, col: 7)
+    func testBlankAssignedLetterUsedInWordExtraction() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 18, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [(7, 6, "C", 3), (7, 8, "T", 1)])
+        let blank = Tile(tileId: "blank-1", letter: "?", points: 0, isBlank: true, blankAssignedLetter: "A")
+        state = TestHelpers.withRack(state, player: .playerA, rack: [blank])
+
+        let (result, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 7), tile: blank)],
+            validWords: ["CAT"],
+            rules: rules
+        )
+
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWord, "CAT")
+        XCTAssertEqual(breakdown?.mainWordScore, 4)
+        XCTAssertEqual(breakdown?.total, 4)
+    }
+
+    func testMainWordExtractionAtBoardEdge() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 19, rules: rules)
+        let rack = TestHelpers.makeRack(letters: "A", "B")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (result, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [
+                Placement(position: Position(row: 7, col: 0), tile: rack[0]),
+                Placement(position: Position(row: 7, col: 1), tile: rack[1])
+            ],
+            validWords: ["AB"],
+            rules: rules
+        )
+
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWord, "AB")
+        XCTAssertEqual(breakdown?.mainWordScore, 4)
+        XCTAssertEqual(breakdown?.total, 4)
+    }
+
+    func testValidateAllWordsRejectsInvalidCrossWord() {
+        let rules = RulesConfig(requireCenterFirstMove: false, dictionaryStrategy: .validateAllWords)
+        var state = TestHelpers.makeEmptyState(seed: 20, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [(7, 6, "H", 4), (6, 7, "A", 1), (8, 7, "T", 1)])
+        let rack = TestHelpers.makeRack(letters: "E")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (result, _) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 7), tile: rack[0])],
+            validWords: ["HE"],
+            rules: rules
+        )
+
+        XCTAssertEqual(TestHelpers.unwrapFailure(result), .invalidWord("AET"))
+    }
+}
+
+final class WordDuelCoreScoringTests: XCTestCase {
+    func testLetterMultiplierAppliesOnlyToNewTiles() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 21, rules: rules)
+        state = TestHelpers.setBonuses(state, bonuses: [Position(row: 7, col: 7): .doubleLetter])
+        state = TestHelpers.setBoardLetters(state, placements: [(7, 6, "A", 1)])
+        let rack = TestHelpers.makeRack(letters: "B")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (result, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 7), tile: rack[0])],
+            validWords: ["AB"],
+            rules: rules
+        )
+
+        XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
+        XCTAssertEqual(breakdown?.mainWordScore, 7)
+        XCTAssertEqual(breakdown?.total, 7)
+    }
+
+    func testWordMultiplierAppliesOnPlacedTile() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 22, rules: rules)
+        state = TestHelpers.setBonuses(state, bonuses: [Position(row: 7, col: 7): .doubleWord])
+        state = TestHelpers.setBoardLetters(state, placements: [(7, 6, "A", 1)])
+        let rack = TestHelpers.makeRack(letters: "B")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (_, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 7), tile: rack[0])],
+            validWords: ["AB"],
+            rules: rules
+        )
+
+        XCTAssertEqual(breakdown?.mainWordScore, 8)
+        XCTAssertEqual(breakdown?.total, 8)
+    }
+
+    func testMultipleWordMultipliersMultiplyTogether() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 23, rules: rules)
+        state = TestHelpers.setBonuses(state, bonuses: [
+            Position(row: 7, col: 7): .doubleWord,
+            Position(row: 7, col: 8): .tripleWord
         ])
-    }
+        let rack = TestHelpers.makeRack(letters: "A", "B")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
 
-    private func makeState() -> GameState {
-        GameState(
-            board: BoardFactory.makeInitialBoard(),
-            racks: [
-                .playerA: [],
-                .playerB: []
+        let (_, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [
+                Placement(position: Position(row: 7, col: 7), tile: rack[0]),
+                Placement(position: Position(row: 7, col: 8), tile: rack[1])
             ],
-            bag: [],
-            scores: [
-                .playerA: 0,
-                .playerB: 0
+            validWords: ["AB"],
+            rules: rules
+        )
+
+        XCTAssertEqual(breakdown?.mainWordScore, 24)
+        XCTAssertEqual(breakdown?.total, 24)
+    }
+
+    func testCrossWordScoringUsesPlacedTileMultiplierOnly() {
+        let rules = RulesConfig(requireCenterFirstMove: false, dictionaryStrategy: .validateAllWords)
+        var state = TestHelpers.makeEmptyState(seed: 24, rules: rules)
+        state = TestHelpers.setBonuses(state, bonuses: [Position(row: 7, col: 7): .doubleLetter])
+        state = TestHelpers.setBoardLetters(state, placements: [(6, 7, "A", 1), (8, 7, "T", 1), (7, 6, "H", 4)])
+        let rack = TestHelpers.makeRack(letters: "E")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (_, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 7), tile: rack[0])],
+            validWords: ["HE", "AET"],
+            rules: rules
+        )
+
+        XCTAssertEqual(breakdown?.mainWord, "HE")
+        XCTAssertEqual(breakdown?.mainWordScore, 6)
+        XCTAssertEqual(breakdown?.crossWords.count, 1)
+        XCTAssertEqual(breakdown?.crossWords.first?.0, "AET")
+        XCTAssertEqual(breakdown?.crossWords.first?.1, 4)
+        XCTAssertEqual(breakdown?.total, 10)
+    }
+
+    func testConsumedBonusNotAppliedAgain() {
+        let rules = RulesConfig(requireCenterFirstMove: true)
+        var state = TestHelpers.makeEmptyState(seed: 25, rules: rules)
+        state = TestHelpers.setBonuses(state, bonuses: [Position(row: 7, col: 7): .doubleWord])
+
+        let firstRack = TestHelpers.makeRack(letters: "A")
+        state = TestHelpers.withRack(state, player: .playerA, rack: firstRack)
+        let (firstResult, firstBreakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 7), tile: firstRack[0])],
+            validWords: ["A"],
+            rules: rules
+        )
+
+        let afterFirst = TestHelpers.unwrapSuccess(firstResult)
+        XCTAssertEqual(firstBreakdown?.mainWordScore, 2)
+        XCTAssertTrue(afterFirst.board[7][7].bonusConsumed)
+
+        let secondRack = TestHelpers.makeRack(letters: "B")
+        state = TestHelpers.withRack(afterFirst, player: .playerB, rack: secondRack)
+        let (_, secondBreakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 8), tile: secondRack[0])],
+            validWords: ["AB"],
+            rules: rules
+        )
+
+        XCTAssertEqual(secondBreakdown?.mainWordScore, 4)
+        XCTAssertEqual(secondBreakdown?.total, 4)
+    }
+
+    func testExistingTileOnBonusNeverGetsMultiplier() {
+        let rules = RulesConfig(requireCenterFirstMove: false)
+        var state = TestHelpers.makeEmptyState(seed: 26, rules: rules)
+        state = TestHelpers.setBonuses(state, bonuses: [Position(row: 7, col: 7): .doubleWord])
+        state = TestHelpers.setBoardLetters(state, placements: [(7, 7, "B", 3)])
+        let rack = TestHelpers.makeRack(letters: "A")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (_, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 8), tile: rack[0])],
+            validWords: ["BA"],
+            rules: rules
+        )
+
+        XCTAssertEqual(breakdown?.mainWordScore, 4)
+        XCTAssertEqual(breakdown?.total, 4)
+    }
+
+    func testBlankTileScoresZeroEvenOnLetterMultiplier() {
+        let rules = RulesConfig(requireCenterFirstMove: true)
+        var state = TestHelpers.makeEmptyState(seed: 27, rules: rules)
+        state = TestHelpers.setBonuses(state, bonuses: [Position(row: 7, col: 7): .tripleLetter])
+        let blank = Tile(tileId: "blank-2", letter: "?", points: 0, isBlank: true, blankAssignedLetter: "Z")
+        state = TestHelpers.withRack(state, player: .playerA, rack: [blank])
+
+        let (_, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [Placement(position: Position(row: 7, col: 7), tile: blank)],
+            validWords: ["Z"],
+            rules: rules
+        )
+
+        XCTAssertEqual(breakdown?.mainWord, "Z")
+        XCTAssertEqual(breakdown?.mainWordScore, 0)
+        XCTAssertEqual(breakdown?.total, 0)
+    }
+
+    func testBingoBonusApplied() {
+        let rules = RulesConfig(requireCenterFirstMove: true, rackSize: 7, bingoBonus: 50)
+        var state = TestHelpers.makeEmptyState(seed: 28, rules: rules)
+        let rack = TestHelpers.makeRack(letters: "A", "A", "A", "A", "A", "A", "A")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let placements = [
+            Placement(position: Position(row: 7, col: 4), tile: rack[0]),
+            Placement(position: Position(row: 7, col: 5), tile: rack[1]),
+            Placement(position: Position(row: 7, col: 6), tile: rack[2]),
+            Placement(position: Position(row: 7, col: 7), tile: rack[3]),
+            Placement(position: Position(row: 7, col: 8), tile: rack[4]),
+            Placement(position: Position(row: 7, col: 9), tile: rack[5]),
+            Placement(position: Position(row: 7, col: 10), tile: rack[6])
+        ]
+
+        let (_, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: placements,
+            validWords: ["AAAAAAA"],
+            rules: rules
+        )
+
+        XCTAssertEqual(breakdown?.mainWordScore, 7)
+        XCTAssertEqual(breakdown?.total, 57)
+        XCTAssertEqual(breakdown?.notes, ["Bingo +50"])
+    }
+
+    func testBingoBonusNotAppliedWhenUsingFewerThanRackSize() {
+        let rules = RulesConfig(requireCenterFirstMove: true, rackSize: 7, bingoBonus: 50)
+        var state = TestHelpers.makeEmptyState(seed: 29, rules: rules)
+        let rack = TestHelpers.makeRack(letters: "A", "A", "A", "A", "A", "A")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let placements = [
+            Placement(position: Position(row: 7, col: 5), tile: rack[0]),
+            Placement(position: Position(row: 7, col: 6), tile: rack[1]),
+            Placement(position: Position(row: 7, col: 7), tile: rack[2]),
+            Placement(position: Position(row: 7, col: 8), tile: rack[3]),
+            Placement(position: Position(row: 7, col: 9), tile: rack[4]),
+            Placement(position: Position(row: 7, col: 10), tile: rack[5])
+        ]
+
+        let (_, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: placements,
+            validWords: ["AAAAAA"],
+            rules: rules
+        )
+
+        XCTAssertEqual(breakdown?.mainWordScore, 6)
+        XCTAssertEqual(breakdown?.total, 6)
+        XCTAssertEqual(breakdown?.notes, [])
+    }
+
+    func testTotalIncludesMainWordAndCrossWords() {
+        let rules = RulesConfig(requireCenterFirstMove: false, dictionaryStrategy: .validateAllWords)
+        var state = TestHelpers.makeEmptyState(seed: 30, rules: rules)
+        state = TestHelpers.setBoardLetters(state, placements: [
+            (6, 7, "A", 1), (8, 7, "T", 1),
+            (6, 8, "E", 1), (8, 8, "R", 1)
+        ])
+        let rack = TestHelpers.makeRack(letters: "O", "N")
+        state = TestHelpers.withRack(state, player: .playerA, rack: rack)
+
+        let (_, breakdown) = TestHelpers.placeWord(
+            state,
+            placements: [
+                Placement(position: Position(row: 7, col: 7), tile: rack[0]),
+                Placement(position: Position(row: 7, col: 8), tile: rack[1])
             ],
-            turn: .playerA,
-            version: 0
+            validWords: ["ON", "AOT", "ENR"],
+            rules: rules
         )
+
+        XCTAssertEqual(breakdown?.mainWordScore, 2)
+        XCTAssertEqual(breakdown?.crossWords.map(\.1), [3, 3])
+        XCTAssertEqual(breakdown?.total, 8)
+    }
+}
+
+private enum TestHelpers {
+    static func makeEmptyState(
+        seed: Int,
+        rules: RulesConfig,
+        distribution: TileDistribution = .default
+    ) -> GameState {
+        GameState.initial(seed: seed, rules: rules, distribution: distribution, board: emptyBoard(size: rules.boardSize))
     }
 
-    private func withRack(_ state: GameState, for player: PlayerID, rack: [Tile]) -> GameState {
-        var racks = state.racks
-        racks[player] = rack
-        return GameState(
-            board: state.board,
-            racks: racks,
-            bag: state.bag,
-            scores: state.scores,
-            turn: state.turn,
-            version: state.version
-        )
-    }
-
-    private func withPlacedTile(_ state: GameState, at position: Position, tile: Tile) -> GameState {
+    static func setBoardLetters(
+        _ state: GameState,
+        placements: [(row: Int, col: Int, letter: Character, points: Int)]
+    ) -> GameState {
         var board = state.board
-        board[position.row][position.col] = BoardCell(
-            letter: tile.resolvedLetter,
-            tile: tile,
-            bonus: board[position.row][position.col].bonus,
-            bonusConsumed: true
+        for placement in placements {
+            let tile = Tile(
+                tileId: "existing-\(placement.row)-\(placement.col)-\(placement.letter)",
+                letter: placement.letter,
+                points: placement.points,
+                isBlank: false,
+                blankAssignedLetter: nil
+            )
+            let current = board[placement.row][placement.col]
+            board[placement.row][placement.col] = BoardCell(
+                letter: placement.letter,
+                tile: tile,
+                bonus: current.bonus,
+                bonusConsumed: false
+            )
+        }
+        return copy(state, board: board)
+    }
+
+    static func setBonuses(_ state: GameState, bonuses: [Position: Bonus]) -> GameState {
+        var board = state.board
+        for (position, bonus) in bonuses {
+            let current = board[position.row][position.col]
+            board[position.row][position.col] = BoardCell(
+                letter: current.letter,
+                tile: current.tile,
+                bonus: bonus,
+                bonusConsumed: false
+            )
+        }
+        return copy(state, board: board)
+    }
+
+    static func makeRack(letters: String...) -> [Tile] {
+        letters.enumerated().map { index, string in
+            precondition(string.count == 1, "makeRack expects one-character strings")
+            let char = Character(string)
+            return Tile(
+                tileId: "rack-\(index)-\(char)",
+                letter: char,
+                points: points(for: char),
+                isBlank: char == "?",
+                blankAssignedLetter: nil
+            )
+        }
+    }
+
+    static func placeWord(
+        _ state: GameState,
+        placements: [Placement],
+        validWords: Set<String>,
+        rules: RulesConfig
+    ) -> (result: Result<(GameState, ScoreBreakdown?), RuleViolation>, breakdown: ScoreBreakdown?) {
+        let result = applyMove(
+            state: state,
+            move: .place(placements),
+            validator: TestDictionary(validWords: validWords),
+            rules: rules
         )
 
-        return GameState(
+        switch result {
+        case .success((_, let breakdown)):
+            return (result, breakdown)
+        case .failure:
+            return (result, nil)
+        }
+    }
+
+    static func unwrapSuccess(_ result: Result<(GameState, ScoreBreakdown?), RuleViolation>) -> GameState {
+        switch result {
+        case .success((let state, _)):
+            return state
+        case .failure(let error):
+            XCTFail("Expected success, got \(error)")
+            return makeEmptyState(seed: 0, rules: RulesConfig())
+        }
+    }
+
+    static func unwrapFailure(_ result: Result<(GameState, ScoreBreakdown?), RuleViolation>) -> RuleViolation {
+        switch result {
+        case .success:
+            XCTFail("Expected failure")
+            return .emptyPlacementMove
+        case .failure(let error):
+            return error
+        }
+    }
+
+    private static func copy(_ state: GameState, board: [[BoardCell]]) -> GameState {
+        GameState(
             board: board,
             racks: state.racks,
             bag: state.bag,
@@ -176,18 +742,31 @@ final class WordDuelCoreTests: XCTestCase {
         )
     }
 
-    private func unwrapSuccess(
-        _ result: Result<(GameState, WordsFormed?), RuleViolation>
-    ) throws -> (GameState, WordsFormed?) {
-        switch result {
-        case .success(let value):
-            return value
-        case .failure(let error):
-            throw NSError(domain: "WordDuelCoreTests", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unexpected failure: \(error)"])
+    private static func emptyBoard(size: Int) -> [[BoardCell]] {
+        (0..<size).map { _ in
+            (0..<size).map { _ in BoardCell() }
+        }
+    }
+
+    private static func points(for letter: Character) -> Int {
+        switch letter {
+        case "A", "E", "I", "L", "N", "O", "R", "S", "T", "U": return 1
+        case "D", "G": return 2
+        case "B", "C", "M", "P": return 3
+        case "F", "H", "V", "W", "Y": return 4
+        case "K": return 5
+        case "J", "X": return 8
+        case "Q", "Z": return 10
+        case "?": return 0
+        default: return 1
         }
     }
 }
 
-private struct AllowAllValidator: WordValidating {
-    func isValid(_ word: String) -> Bool { true }
+private struct TestDictionary: WordValidating {
+    let validWords: Set<String>
+
+    func isValid(_ word: String) -> Bool {
+        validWords.contains(word)
+    }
 }
