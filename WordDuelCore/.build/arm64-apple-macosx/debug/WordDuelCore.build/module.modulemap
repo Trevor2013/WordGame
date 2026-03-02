@@ -1,4 +1,0 @@
-module WordDuelCore {
-    header "/Users/ross/repos/WordGame/WordDuelCore/.build/arm64-apple-macosx/debug/WordDuelCore.build/WordDuelCore-Swift.h"
-    requires objc
-}
