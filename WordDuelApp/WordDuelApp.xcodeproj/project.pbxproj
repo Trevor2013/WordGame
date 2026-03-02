@@ -12,6 +12,10 @@
 		A11100010000000000000003 /* LocalGameScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11100020000000000000003 /* LocalGameScreen.swift */; };
 		A11100010000000000000004 /* DebugMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11100020000000000000004 /* DebugMenu.swift */; };
 		A11100010000000000000005 /* WordDuelCore in Frameworks */ = {isa = PBXBuildFile; productRef = A11100030000000000000001 /* WordDuelCore */; };
+		A11100010000000000000006 /* CloudKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11100020000000000000007 /* CloudKitService.swift */; };
+		A11100010000000000000007 /* GamesListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11100020000000000000008 /* GamesListScreen.swift */; };
+		A11100010000000000000008 /* CloudSharingControllerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11100020000000000000010 /* CloudSharingControllerSheet.swift */; };
+		A11100010000000000000009 /* CloudKitShareAcceptance.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11100020000000000000011 /* CloudKitShareAcceptance.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +25,11 @@
 		A11100020000000000000004 /* DebugMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMenu.swift; sourceTree = "<group>"; };
 		A11100020000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A11100020000000000000006 /* WordDuelApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WordDuelApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A11100020000000000000007 /* CloudKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitService.swift; sourceTree = "<group>"; };
+		A11100020000000000000008 /* GamesListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamesListScreen.swift; sourceTree = "<group>"; };
+		A11100020000000000000009 /* WordDuelApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WordDuelApp.entitlements; sourceTree = "<group>"; };
+		A11100020000000000000010 /* CloudSharingControllerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSharingControllerSheet.swift; sourceTree = "<group>"; };
+		A11100020000000000000011 /* CloudKitShareAcceptance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitShareAcceptance.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +61,11 @@
 				A11100020000000000000002 /* GameViewModel.swift */,
 				A11100020000000000000003 /* LocalGameScreen.swift */,
 				A11100020000000000000004 /* DebugMenu.swift */,
+				A11100020000000000000007 /* CloudKitService.swift */,
+				A11100020000000000000008 /* GamesListScreen.swift */,
+				A11100020000000000000010 /* CloudSharingControllerSheet.swift */,
+				A11100020000000000000011 /* CloudKitShareAcceptance.swift */,
+				A11100020000000000000009 /* WordDuelApp.entitlements */,
 				A11100020000000000000005 /* Info.plist */,
 			);
 		};
@@ -143,6 +157,10 @@
 				A11100010000000000000002 /* GameViewModel.swift in Sources */,
 				A11100010000000000000003 /* LocalGameScreen.swift in Sources */,
 				A11100010000000000000004 /* DebugMenu.swift in Sources */,
+				A11100010000000000000006 /* CloudKitService.swift in Sources */,
+				A11100010000000000000007 /* GamesListScreen.swift in Sources */,
+				A11100010000000000000008 /* CloudSharingControllerSheet.swift in Sources */,
+				A11100010000000000000009 /* CloudKitShareAcceptance.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -266,6 +284,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_ENTITLEMENTS = WordDuelApp/WordDuelApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -294,6 +313,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_ENTITLEMENTS = WordDuelApp/WordDuelApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";

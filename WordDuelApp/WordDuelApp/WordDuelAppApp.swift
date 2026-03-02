@@ -2,11 +2,11 @@ import SwiftUI
 
 @main
 struct WordDuelAppApp: App {
-    @StateObject private var viewModel = GameViewModel()
+    @UIApplicationDelegateAdaptor(CloudKitShareAcceptanceDelegate.self) private var cloudKitShareDelegate
 
     var body: some Scene {
         WindowGroup {
-            LocalGameScreen(viewModel: viewModel)
+            GamesListScreen()
         }
     }
 }

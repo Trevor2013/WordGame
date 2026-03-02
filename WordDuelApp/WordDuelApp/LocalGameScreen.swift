@@ -5,34 +5,54 @@ struct LocalGameScreen: View {
     @ObservedObject var viewModel: GameViewModel
 
     @State private var showingDebugMenu = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 12) {
-                scoreHeader
-                boardGrid
-                rackView
-                submitButton
-                moveFeedback
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("Word Duel")
-                        .font(.headline)
-                        .onLongPressGesture(minimumDuration: 1.0) {
-                            showingDebugMenu = true
-                        }
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 12) {
+                    scoreHeader
+                    boardGrid
+                    rackView
+                    submitButton
+                    moveFeedback
                 }
+                .frame(maxWidth: .infinity, alignment: .top)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
             }
+            .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingDebugMenu) {
                 DebugMenu(viewModel: viewModel)
             }
             .sheet(isPresented: $viewModel.isShowingMoveConfirmation) {
                 moveConfirmationSheet
+            }
+            .sheet(item: $viewModel.shareSheetContext, onDismiss: {
+                viewModel.dismissShareSheet()
+            }) { context in
+                CloudSharingControllerSheet(
+                    share: context.share,
+                    container: context.container,
+                    onSaved: {
+                        viewModel.didSaveShare()
+                    },
+                    onStopped: {
+                        viewModel.didStopSharing()
+                    },
+                    onFailure: { error in
+                        viewModel.didFailSharing(with: error)
+                    }
+                )
+            }
+            .task {
+                await viewModel.refreshFromCloudIfNeeded()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                guard newPhase == .active else { return }
+                Task {
+                    await viewModel.refreshFromCloudIfNeeded()
+                }
             }
         }
     }
@@ -47,8 +67,36 @@ struct LocalGameScreen: View {
                 scorePill(player: .playerA)
                 scorePill(player: .playerB)
             }
+
+            if let gameID = viewModel.gameID {
+                Text("Game ID: \(gameID)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+
+                if viewModel.canShareGame {
+                    Button {
+                        Task {
+                            await viewModel.prepareShare()
+                        }
+                    } label: {
+                        if viewModel.isPreparingShare {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            Text("Share Game")
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(viewModel.isPreparingShare)
+                }
+            }
         }
         .padding(.top, 4)
+        .onLongPressGesture(minimumDuration: 1.0) {
+            showingDebugMenu = true
+        }
     }
 
     private func scorePill(player: PlayerID) -> some View {
@@ -206,7 +254,7 @@ struct LocalGameScreen: View {
             viewModel.requestMoveConfirmation()
         }
         .buttonStyle(.borderedProminent)
-        .disabled(viewModel.pendingPlacements.isEmpty)
+        .disabled(viewModel.pendingPlacements.isEmpty || viewModel.isSyncingMove)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -216,6 +264,12 @@ struct LocalGameScreen: View {
                 Text(message)
                     .font(.footnote)
                     .foregroundStyle(.red)
+            }
+
+            if let debugMessage = viewModel.debugMessage {
+                Text(debugMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
 
             if let breakdown = viewModel.lastBreakdown {
@@ -293,7 +347,7 @@ struct LocalGameScreen: View {
                         viewModel.confirmMove()
                     }
                     .fontWeight(.semibold)
-                    .disabled(viewModel.pendingMovePreview == nil)
+                    .disabled(viewModel.pendingMovePreview == nil || viewModel.isSyncingMove)
                 }
             }
         }

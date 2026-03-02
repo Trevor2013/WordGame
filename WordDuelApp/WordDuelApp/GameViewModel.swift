@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CloudKit
 import WordDuelCore
 
 #if canImport(UIKit)
@@ -16,13 +17,44 @@ final class GameViewModel: ObservableObject {
     @Published var debugMessage: String?
     @Published var isShowingMoveConfirmation = false
     @Published private(set) var pendingMovePreview: PendingMovePreview?
+    @Published private(set) var isSyncingMove = false
+    @Published private(set) var isPreparingShare = false
+    @Published var shareSheetContext: ShareSheetContext?
 
     let rules: RulesConfig
+    let gameID: String?
 
     private let distribution: TileDistribution
     private let validator: any WordValidating
+    private let cloudKitService: CloudKitService?
+
+    private(set) var cloudScope: CKDatabase.Scope?
+
+    var boardSize: Int {
+        state.board.count
+    }
+
+    var currentPlayer: PlayerID {
+        state.turn
+    }
+
+    var currentRack: [Tile] {
+        state.racks[state.turn] ?? []
+    }
+
+    var hasCloudSync: Bool {
+        gameID != nil && cloudKitService != nil
+    }
+
+    var canShareGame: Bool {
+        hasCloudSync && cloudScope == .private
+    }
 
     init(
+        initialState: GameState? = nil,
+        gameID: String? = nil,
+        cloudScope: CKDatabase.Scope? = nil,
+        cloudKitService: CloudKitService? = nil,
         seed: Int = Int(Date().timeIntervalSince1970),
         rules: RulesConfig = RulesConfig(
             boardSize: 15,
@@ -37,24 +69,20 @@ final class GameViewModel: ObservableObject {
         self.rules = rules
         self.distribution = distribution
         self.validator = validator
-        self.state = GameState.initial(
-            seed: seed,
-            rules: rules,
-            distribution: distribution,
-            board: BoardFactory.makeInitialBoard(size: rules.boardSize)
-        )
-    }
+        self.gameID = gameID
+        self.cloudScope = cloudScope
+        self.cloudKitService = cloudKitService
 
-    var boardSize: Int {
-        state.board.count
-    }
-
-    var currentPlayer: PlayerID {
-        state.turn
-    }
-
-    var currentRack: [Tile] {
-        state.racks[state.turn] ?? []
+        if let initialState {
+            self.state = initialState
+        } else {
+            self.state = GameState.initial(
+                seed: seed,
+                rules: rules,
+                distribution: distribution,
+                board: BoardFactory.makeInitialBoard(size: rules.boardSize)
+            )
+        }
     }
 
     func selectedTile(in rack: [Tile]) -> Tile? {
@@ -109,7 +137,6 @@ final class GameViewModel: ObservableObject {
             selectedTileID = nil
             invalidMoveMessage = nil
             clearMovePreview()
-            return
         }
     }
 
@@ -144,14 +171,11 @@ final class GameViewModel: ObservableObject {
     }
 
     func confirmMove() {
-        guard let preview = pendingMovePreview else { return }
+        guard let preview = pendingMovePreview, !isSyncingMove else { return }
 
-        state = preview.nextState
-        pendingPlacements.removeAll()
-        selectedTileID = nil
-        lastBreakdown = preview.breakdown
-        invalidMoveMessage = nil
-        clearMovePreview()
+        Task {
+            await commitMove(preview)
+        }
     }
 
     func cancelMoveConfirmation() {
@@ -169,8 +193,13 @@ final class GameViewModel: ObservableObject {
         selectedTileID = nil
         lastBreakdown = nil
         invalidMoveMessage = nil
-        debugMessage = nil
         clearMovePreview()
+
+        if hasCloudSync {
+            debugMessage = "Reset local state only. Cloud game was not changed."
+        } else {
+            debugMessage = nil
+        }
     }
 
     func copyGameStateJSON() {
@@ -199,12 +228,8 @@ final class GameViewModel: ObservableObject {
 
         do {
             state = try GameStateCodec.decode(Data(json.utf8))
-            pendingPlacements.removeAll()
-            selectedTileID = nil
-            lastBreakdown = nil
-            invalidMoveMessage = nil
+            clearTransientState()
             debugMessage = "Loaded GameState from clipboard."
-            clearMovePreview()
         } catch {
             debugMessage = "Paste failed: \(error.localizedDescription)"
         }
@@ -213,8 +238,114 @@ final class GameViewModel: ObservableObject {
 #endif
     }
 
+    func refreshFromCloudIfNeeded(force: Bool = false) async {
+        guard let gameID, let cloudKitService else { return }
+
+        do {
+            let snapshot = try await cloudKitService.fetchGame(gameId: gameID)
+            guard force || snapshot.state.version != state.version else {
+                return
+            }
+
+            state = snapshot.state
+            cloudScope = snapshot.databaseScope
+            clearTransientState()
+            debugMessage = "Loaded latest cloud game state (v\(snapshot.state.version))."
+        } catch {
+            debugMessage = "Cloud refresh failed: \(error.localizedDescription)"
+        }
+    }
+
+    func prepareShare() async {
+        guard let gameID, let cloudKitService else {
+            debugMessage = "Share unavailable: missing cloud game context."
+            return
+        }
+
+        guard canShareGame else {
+            debugMessage = "Share unavailable: only owned games can be shared."
+            return
+        }
+
+        guard !isPreparingShare else { return }
+        isPreparingShare = true
+        defer { isPreparingShare = false }
+
+        do {
+            let context = try await cloudKitService.createOrUpdateShare(gameId: gameID)
+            shareSheetContext = ShareSheetContext(share: context.share, container: context.container)
+        } catch {
+            debugMessage = "Share failed: \(error.localizedDescription)"
+        }
+    }
+
+    func didSaveShare() {
+        debugMessage = "Share link is ready to send."
+    }
+
+    func didStopSharing() {
+        shareSheetContext = nil
+        debugMessage = "Stopped sharing this game."
+    }
+
+    func didFailSharing(with error: Error) {
+        shareSheetContext = nil
+        debugMessage = "Share failed: \(error.localizedDescription)"
+    }
+
+    func dismissShareSheet() {
+        shareSheetContext = nil
+    }
+
     func isOccupiedCell(row: Int, col: Int) -> Bool {
         state.board[row][col].tile != nil
+    }
+
+    private func commitMove(_ preview: PendingMovePreview) async {
+        isSyncingMove = true
+        defer { isSyncingMove = false }
+
+        let expectedVersion = state.version
+
+        if let gameID, let cloudKitService {
+            do {
+                try await cloudKitService.saveMove(
+                    gameId: gameID,
+                    expectedVersion: expectedVersion,
+                    newState: preview.nextState
+                )
+
+                applyCommittedMove(preview)
+                debugMessage = "Move synced to cloud."
+            } catch let cloudError as CloudKitServiceError {
+                switch cloudError {
+                case .conflict:
+                    let message = "Invalid move: cloud version conflict. Refreshing latest state."
+                    await refreshFromCloudIfNeeded(force: true)
+                    invalidMoveMessage = message
+                    clearMovePreview()
+                default:
+                    invalidMoveMessage = "Cloud sync failed: \(cloudError.localizedDescription)"
+                    clearMovePreview()
+                }
+            } catch {
+                invalidMoveMessage = "Cloud sync failed: \(error.localizedDescription)"
+                clearMovePreview()
+            }
+
+            return
+        }
+
+        applyCommittedMove(preview)
+    }
+
+    private func applyCommittedMove(_ preview: PendingMovePreview) {
+        state = preview.nextState
+        pendingPlacements.removeAll()
+        selectedTileID = nil
+        lastBreakdown = preview.breakdown
+        invalidMoveMessage = nil
+        clearMovePreview()
     }
 
     private func sortedPendingPlacements() -> [Placement] {
@@ -226,6 +357,14 @@ final class GameViewModel: ObservableObject {
                 }
                 return lhs.position.row < rhs.position.row
             }
+    }
+
+    private func clearTransientState() {
+        pendingPlacements.removeAll()
+        selectedTileID = nil
+        lastBreakdown = nil
+        invalidMoveMessage = nil
+        clearMovePreview()
     }
 
     private func clearMovePreview() {
@@ -243,6 +382,12 @@ private struct AllowAllWordsValidator: WordValidating {
 struct PendingMovePreview {
     let nextState: GameState
     let breakdown: ScoreBreakdown
+}
+
+struct ShareSheetContext: Identifiable {
+    let id = UUID()
+    let share: CKShare
+    let container: CKContainer
 }
 
 private extension RuleViolation {
