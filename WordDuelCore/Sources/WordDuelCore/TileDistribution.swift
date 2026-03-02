@@ -11,6 +11,26 @@ public struct TileDistribution: Codable, Hashable, Sendable {
             self.points = points
             self.count = count
         }
+
+        enum CodingKeys: String, CodingKey {
+            case letter
+            case points
+            case count
+        }
+
+        public init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            letter = try container.decodeCharacter(forKey: .letter)
+            points = try container.decode(Int.self, forKey: .points)
+            count = try container.decode(Int.self, forKey: .count)
+        }
+
+        public func encode(to encoder: any Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encodeCharacter(letter, forKey: .letter)
+            try container.encode(points, forKey: .points)
+            try container.encode(count, forKey: .count)
+        }
     }
 
     public let entries: [Entry]

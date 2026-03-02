@@ -39,6 +39,32 @@ public struct Tile: Codable, Hashable, Sendable {
         }
         return letter
     }
+
+    enum CodingKeys: String, CodingKey {
+        case tileId
+        case letter
+        case points
+        case isBlank
+        case blankAssignedLetter
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        tileId = try container.decode(String.self, forKey: .tileId)
+        letter = try container.decodeCharacter(forKey: .letter)
+        points = try container.decode(Int.self, forKey: .points)
+        isBlank = try container.decode(Bool.self, forKey: .isBlank)
+        blankAssignedLetter = try container.decodeCharacterIfPresent(forKey: .blankAssignedLetter)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(tileId, forKey: .tileId)
+        try container.encodeCharacter(letter, forKey: .letter)
+        try container.encode(points, forKey: .points)
+        try container.encode(isBlank, forKey: .isBlank)
+        try container.encodeCharacterIfPresent(blankAssignedLetter, forKey: .blankAssignedLetter)
+    }
 }
 
 public enum Bonus: String, Codable, Hashable, Sendable {
@@ -79,6 +105,29 @@ public struct BoardCell: Codable, Hashable, Sendable {
 
     public var isEmpty: Bool {
         tile == nil
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case letter
+        case tile
+        case bonus
+        case bonusConsumed
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        letter = try container.decodeCharacterIfPresent(forKey: .letter)
+        tile = try container.decodeIfPresent(Tile.self, forKey: .tile)
+        bonus = try container.decodeIfPresent(Bonus.self, forKey: .bonus)
+        bonusConsumed = try container.decode(Bool.self, forKey: .bonusConsumed)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeCharacterIfPresent(letter, forKey: .letter)
+        try container.encodeIfPresent(tile, forKey: .tile)
+        try container.encodeIfPresent(bonus, forKey: .bonus)
+        try container.encode(bonusConsumed, forKey: .bonusConsumed)
     }
 }
 

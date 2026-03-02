@@ -297,16 +297,16 @@ final class WordDuelCoreExtractionTests: XCTestCase {
         let (result, breakdown) = TestHelpers.placeWord(
             state,
             placements: placements,
-            validWords: ["RS", "ART"],
+            validWords: ["RS", "ART", "ES"],
             rules: rules
         )
 
         XCTAssertNotNil(TestHelpers.unwrapSuccess(result))
         XCTAssertEqual(breakdown?.mainWord, "RS")
-        XCTAssertEqual(breakdown?.crossWords.count, 1)
-        XCTAssertEqual(breakdown?.crossWords.first?.0, "ART")
+        XCTAssertEqual(breakdown?.crossWords.count, 2)
+        XCTAssertEqual(breakdown?.crossWords.map(\.0), ["ART", "ES"])
         XCTAssertEqual(breakdown?.mainWordScore, 2)
-        XCTAssertEqual(breakdown?.total, 5)
+        XCTAssertEqual(breakdown?.total, 7)
     }
 
     func testBridgingWordExtraction() {
@@ -549,7 +549,7 @@ final class WordDuelCoreScoringTests: XCTestCase {
     }
 
     func testBingoBonusApplied() {
-        let rules = RulesConfig(requireCenterFirstMove: true, rackSize: 7, bingoBonus: 50)
+        let rules = RulesConfig(rackSize: 7, bingoBonus: 50, requireCenterFirstMove: true)
         var state = TestHelpers.makeEmptyState(seed: 28, rules: rules)
         let rack = TestHelpers.makeRack(letters: "A", "A", "A", "A", "A", "A", "A")
         state = TestHelpers.withRack(state, player: .playerA, rack: rack)
@@ -577,7 +577,7 @@ final class WordDuelCoreScoringTests: XCTestCase {
     }
 
     func testBingoBonusNotAppliedWhenUsingFewerThanRackSize() {
-        let rules = RulesConfig(requireCenterFirstMove: true, rackSize: 7, bingoBonus: 50)
+        let rules = RulesConfig(rackSize: 7, bingoBonus: 50, requireCenterFirstMove: true)
         var state = TestHelpers.makeEmptyState(seed: 29, rules: rules)
         let rack = TestHelpers.makeRack(letters: "A", "A", "A", "A", "A", "A")
         state = TestHelpers.withRack(state, player: .playerA, rack: rack)
@@ -600,7 +600,7 @@ final class WordDuelCoreScoringTests: XCTestCase {
 
         XCTAssertEqual(breakdown?.mainWordScore, 6)
         XCTAssertEqual(breakdown?.total, 6)
-        XCTAssertEqual(breakdown?.notes, [])
+        XCTAssertEqual(breakdown?.notes, [String]())
     }
 
     func testTotalIncludesMainWordAndCrossWords() {
@@ -674,6 +674,19 @@ private enum TestHelpers {
             )
         }
         return copy(state, board: board)
+    }
+
+    static func withRack(_ state: GameState, player: PlayerID, rack: [Tile]) -> GameState {
+        var racks = state.racks
+        racks[player] = rack
+        return GameState(
+            board: state.board,
+            racks: racks,
+            bag: state.bag,
+            scores: state.scores,
+            turn: state.turn,
+            version: state.version
+        )
     }
 
     static func makeRack(letters: String...) -> [Tile] {
